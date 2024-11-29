@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Script to create a project directory, manage user groups, and set permissions.
+
+# 1. Create Project Directories
+echo "Creating project directories..."
+mkdir -p /opt/project/{documents,scripts}
+echo "Project directory structure created at /opt/project."
+
+# 2. Setup User Group
+GROUP="projectteam"
+echo "Creating user group: $GROUP"
+if ! grep -q "^$GROUP:" /etc/group; then
+    groupadd $GROUP
+    echo "Group $GROUP created."
+else
+    echo "Group $GROUP already exists."
+fi
+
+# Add users to the group
+USERS=("user1" "user2" "user3")  # Replace with actual usernames
+for user in "${USERS[@]}"; do
+    if id "$user" &>/dev/null; then
+        usermod -aG $GROUP $user
+        echo "Added $user to group $GROUP."
+    else
+        echo "User $user does not exist. Skipping..."
+    fi
+done
+
+# 3. Set Permissions
+echo "Setting directory permissions..."
+chown root:$GROUP /opt/project /opt/project/documents /opt/project/scripts
+chmod 770 /opt/project /opt/project/documents /opt/project/scripts
+echo "Permissions set: Group read/write, others denied."
+
+# 4. Ownership and Sticky Bit
+echo "Applying sticky bit to project directories..."
+chmod g+s /opt/project /opt/project/documents /opt/project/scripts
+echo "Sticky bit applied. Group members can only modify their own files."
+
+# 5. Create Test Files
+echo "Creating test files with specific permissions..."
+touch /opt/project/documents/test_readonly.txt
+touch /opt/project/scripts/test_executable.sh
+chmod 640 /opt/project/documents/test_readonly.txt
+chmod 750 /opt/project/scripts/test_executable.sh
+echo "Test files created with specified permissions."
+
+# Final Summary
+echo "Script execution completed successfully!"
+echo "Directories created: /opt/project, /opt/project/documents, /opt/project/scripts."
+echo "Group created: $GROUP with members ${USERS[*]}."
+echo "Permissions set: 770 for directories, sticky bit applied."
+echo "Test files created: test_readonly.txt (read-only), test_executable.sh (executable)."
